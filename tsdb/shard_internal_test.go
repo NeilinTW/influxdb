@@ -138,7 +138,11 @@ _reserved,region=uswest value="foo" 0
 		} {
 			name := fmt.Sprintf("%s_%s_%s", index, tt.measurement, tt.field)
 			t.Run(name, func(t *testing.T) {
-				typ := sh.mapType(tt.measurement, tt.field)
+				typ, err := sh.mapType(tt.measurement, tt.field)
+				if err != nil {
+					t.Fatal(err)
+				}
+
 				if have, want := typ, tt.typ; have != want {
 					t.Errorf("unexpected data type: have=%#v want=%#v", have, want)
 				}
@@ -180,9 +184,17 @@ mem,host=serverB value=50i,val3=t 10
 		} {
 			t.Run(index+"_"+tt.regex, func(t *testing.T) {
 				re := regexp.MustCompile(tt.regex)
-				measurements := sh.measurementsByRegex(re)
-				sort.Strings(measurements)
-				if diff := cmp.Diff(tt.measurements, measurements, cmpopts.EquateEmpty()); diff != "" {
+				measurements, err := sh.MeasurementNamesByRegex(re)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				mstrings := make([]string, 0, len(measurements))
+				for _, name := range measurements {
+					mstrings = append(mstrings, string(name))
+				}
+				sort.Strings(mstrings)
+				if diff := cmp.Diff(tt.measurements, mstrings, cmpopts.EquateEmpty()); diff != "" {
 					t.Errorf("unexpected measurements:\n%s", diff)
 				}
 			})
